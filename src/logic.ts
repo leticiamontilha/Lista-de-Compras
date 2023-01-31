@@ -1,6 +1,6 @@
 import { Request, Response } from "express"
 import { allList } from "./database"
-import { dataList, IListComplete, IListRequest, ItensListRequiredData, ItensListRequiredKeys } from "./interfaces"
+import { IListComplete, IListRequest, ItensListRequiredData, ItensListRequiredKeys } from "./interfaces"
 
 const validateDataList = (payload: any): IListRequest => {
 
@@ -21,22 +21,6 @@ const validateDataList = (payload: any): IListRequest => {
 
     return payload
 }
-
-const validateItensData = (payload: any) => {
-    const keys: Array<string> = Object.keys(payload)
-    const requiredKeys: Array<ItensListRequiredData> = ["name", "quantity"]
-
-    const containsItensData: boolean = requiredKeys.every((key: string) => {
-        return keys.includes(key)
-    })
-
-    if(!containsItensData) {
-        throw new Error(`As chaves sao obrigatorias: ${requiredKeys}`)
-    }
-
-    return payload
-}
-
 
 export const createList = (request: Request, response: Response ): Response => {
    try {
@@ -90,33 +74,6 @@ export const getListId =  (request: Request, response: Response): Response => {
     return response.status(200).json(allList[indexListShop])
 }
 
-export const deleteListId = (request: Request, response: Response): Response => {
-   
-    const indexListShop: number = request.listShop.indexListShop
-
-    allList.splice(indexListShop, 1)
-
-    return response.status(204).send()
-}
-
-// export const deleteItenData = (request: Request, response: Response): Response => {
-    
-//     const indexListShop: string = request.params.id 
-//     const itemListShop = request.params.item
-
-//     const list = allList.find(el => el.id === +indexListShop) as IListComplete
-
-//     // const deleteIndex = list?.data.findIndex(el => el.name === itemListShop) 
-
-//     // if(deleteIndex){
-//     //     list.data[deleteIndex].splice(deleteIndex, 1)
-
-//     // }
-
-//     // return response.status(200)
-    
-// }
-
 export const updateList = (request: Request, response: Response): Response => {
     
     const indexListShop: string = request.params.id 
@@ -126,8 +83,22 @@ export const updateList = (request: Request, response: Response): Response => {
 
     const updateIndex = list?.data.findIndex(el => el.name === itemListShop)
 
+    for (const key in request.body){
+        if(key !== "name" && key !== "quantity"){
+            return response.status(400).json({
+                message: "o item só pode conter name ou quantity",
+            });  
+        }
+
+        if( typeof request.body[key] !== "string"){
+            return response.status(400).json({
+                message: "o item só pode ser do",
+            }); 
+        }
+    }
+
     if(updateIndex === -1) {
-        return response.status(400).json({
+        return response.status(404).json({
             message: `o item ${itemListShop} não existe`,
         });
     }
@@ -143,4 +114,34 @@ export const updateList = (request: Request, response: Response): Response => {
    return response.status(200).json(list.data[updateIndex])
 }
 
+export const deleteListId = (request: Request, response: Response): Response => {
+   
+    const indexListShop: number = request.listShop.indexListShop
+
+    allList.splice(indexListShop, 1)
+
+    return response.status(204).send()
+}
+
+export const deleteItenData = (request: Request, response: Response): Response => {
+    
+    const indexListShop: string = request.params.id 
+    const itemListShop = request.params.item
+
+    const list = allList.find(el => el.id === +indexListShop) as IListComplete
+
+    const deleteIndex = list?.data.findIndex(el => el.name === itemListShop) 
+
+    if(deleteIndex === -1){
+        return response.status(404).json({
+            message: `o item ${itemListShop} não existe`,
+        });
+    }
+    
+    list.data.splice(deleteIndex, 1)
+
+
+    return response.status(204).json({})
+    
+}
 
